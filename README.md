@@ -1,72 +1,38 @@
-Laravel Log Compressor
-
-A Laravel package to compress old log files and delete expired compressed logs, either manually or via a scheduled task.
-
-Requirements
 
 
+# Log Compression Command
 
+## Usage
+Run the command to compress log files older than a specified number of days and delete old compressed logs.
 
-
-PHP 7.4 or higher
-
-
-
-Laravel 6.x, 7.x, 8.x, 9.x, 10.x, or 11.x
-
-Installation
-
-
-
-
-
-Require the package:
-
-composer require daz9e/laravel-log-compressor
-
-
-
-Add configuration to config/logging.php:
-
-return [
-'default' => env('LOG_CHANNEL', 'stack'),
-'compress_days' => env('LOG_COMPRESS_DAYS', 2),
-'compress_schedule' => env('LOG_COMPRESS_SCHEDULE', true),
-'channels' => [
-'stack' => [
-'driver' => 'stack',
-'channels' => ['daily'],
-'ignore_exceptions' => false,
-],
-'daily' => [
-'driver' => 'daily',
-'path' => storage_path('logs/laravel.log'),
-'level' => env('LOG_LEVEL', 'debug'),
-'days' => env('LOG_DAILY_DAYS', 14),
-],
-],
-];
-
-
-
-Optionally, configure settings in .env:
-
-LOG_COMPRESS_DAYS=2
-LOG_DAILY_DAYS=14
-LOG_COMPRESS_SCHEDULE=true
-
-Usage
-
-Manual Execution
-
-Run the command to compress logs:
-
+```bash
 php artisan logs:compress [days]
+```
 
-Scheduled Execution
+- **`days`** (optional): Number of days to keep logs uncompressed. Defaults to `LOG_COMPRESS_DAYS` in `.env` or `2` days.
 
-The command is automatically scheduled to run daily by default. To disable scheduling, set LOG_COMPRESS_SCHEDULE=false in your .env file.
+### Example
+```bash
+php artisan logs:compress 5
+```
+Compresses logs older than 5 days and deletes `.gz` files older than 14 days (configurable in `config/logging.php`).
 
-License
+## Configuration
+In `config/logging.php`:
+- **`compress_days`**: Days to keep logs uncompressed (default: `2`). Override via `.env`:
+  ```env
+  LOG_COMPRESS_DAYS=5
+  ```
+- **`logging.channels.daily.days`**: Retention period for compressed logs (default: `14` days).
 
-MIT
+## Scheduling
+Scheduled to run daily in `routes/console.php`:
+```php
+Schedule::command('logs:compress')->daily();
+```
+
+Ensure the Laravel scheduler is set up:
+```bash
+* * * * * cd /path-to-your-project && php artisan schedule:run >> /dev/null 2>&1
+```
+
