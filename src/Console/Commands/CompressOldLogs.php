@@ -10,8 +10,8 @@ use Symfony\Component\Console\Command\Command as CommandAlias;
 
 class CompressOldLogs extends Command
 {
-    private const LOG_FILE_PATTERN = '/laravel-(\d{4}-\d{2}-\d{2})\.log$/';
-    private const GZ_FILE_PATTERN = '/laravel-(\d{4}-\d{2}-\d{2})\.log.gz$/';
+    private const LOG_FILE_PATTERN = '/.*-(\d{4}-\d{2}-\d{2})\.log$/';
+    private const GZ_FILE_PATTERN = '/.*-(\d{4}-\d{2}-\d{2})\.log\.gz$/';
 
     protected $signature = 'logs:compress {days? : Number of days to keep logs uncompressed}';
 
@@ -47,10 +47,26 @@ class CompressOldLogs extends Command
 
     protected function getLogFiles()
     {
-        return collect(File::files(storage_path('logs')))
-            ->filter(function ($file) {
-                return preg_match(self::LOG_FILE_PATTERN, $file->getFilename());
-            });
+        $logPath = storage_path('logs');
+        $files = new Collection();
+
+        $this->collectLogFiles($logPath, $files);
+
+        return $files->filter(function ($file) {
+            return preg_match(self::LOG_FILE_PATTERN, $file->getFilename());
+        });
+    }
+
+    protected function collectLogFiles(string $path, Collection $files)
+    {
+        try {
+            $items = File::allFiles($path);
+            foreach ($items as $file) {
+                $files->push($file);
+            }
+        } catch (\Exception $e) {
+            $this->error("Error reading directory {$path}: " . $e->getMessage());
+        }
     }
 
     protected function getLatestLogDate(Collection $files)
@@ -117,24 +133,25 @@ class CompressOldLogs extends Command
 
     protected function deleteOldFiles(Carbon $cutoffDate)
     {
-        $path = storage_path('logs');
+        $logPath = storage_path('logs');
         $deletedCount = 0;
+        $files = new Collection();
 
-        $files = collect(File::files($path))
-            ->filter(function ($file) {
-                return preg_match(self::GZ_FILE_PATTERN, $file->getFilename());
-            })
-            ->filter(function ($file) use ($cutoffDate) {
-                if (preg_match(self::GZ_FILE_PATTERN, $file->getFilename(), $matches)) {
-                    try {
-                        $fileDate = Carbon::createFromFormat('Y-m-d', $matches[1]);
-                        return $fileDate && $fileDate->lt($cutoffDate);
-                    } catch (\Exception $e) {
-                        return false;
-                    }
+        $this->collectLogFiles($logPath, $files);
+
+        $files = $files->filter(function ($file) {
+            return preg_match(self::GZ_FILE_PATTERN, $file->getFilename());
+        })->filter(function ($file) use ($cutoffDate) {
+            if (preg_match(self::GZ_FILE_PATTERN, $file->getFilename(), $matches)) {
+                try {
+                    $fileDate = Carbon::createFromFormat('Y-m-d', $matches[1]);
+                    return $fileDate && $fileDate->lt($cutoffDate);
+                } catch (\Exception $e) {
+                    return false;
                 }
-                return false;
-            });
+            }
+            return false;
+        });
 
         foreach ($files as $file) {
             $gzFile = $file->getPathname();
