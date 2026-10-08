@@ -4,6 +4,7 @@ namespace Daz9e\LaravelLogCompressor\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Daz9e\LaravelLogCompressor\Console\Commands\CompressOldLogs;
+use Illuminate\Console\Scheduling\Schedule;
 
 class LogCompressorServiceProvider extends ServiceProvider
 {
@@ -19,11 +20,21 @@ class LogCompressorServiceProvider extends ServiceProvider
             ]);
 
             if (config('logging.compress_schedule', true)) {
-                $this->app->booted(function () {
-                    $schedule = $this->app->make('Illuminate\Console\Scheduling\Schedule');
-                    $schedule->command('logs:compress')->daily();
-                });
+                $this->scheduleDailyCompression();
             }
+        }
+    }
+
+    private function scheduleDailyCompression()
+    {
+        $register = function (Schedule $schedule) {
+            $schedule->command('logs:compress')->daily();
+        };
+
+        $this->app->afterResolving(Schedule::class, $register);
+
+        if ($this->app->resolved(Schedule::class)) {
+            $register($this->app->make(Schedule::class));
         }
     }
 }
