@@ -36,6 +36,8 @@ jobs:
 
       - name: Install dependencies
         run: |
+          # Laravel 10/11 are EOL and every release carries an advisory; we only test compatibility here
+          composer config policy.advisories.block false
           composer require "laravel/framework:${{ matrix.laravel }}" "orchestra/testbench:${{ matrix.testbench }}" --no-interaction --no-update
           composer update --prefer-dist --no-interaction --no-progress
 
