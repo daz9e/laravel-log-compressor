@@ -13,9 +13,18 @@
         "php": "^7.4|^8.0",
         "laravel/framework": "^6.0|^7.0|^8.0|^9.0|^10.0|^11.0|^12.0"
     },
+    "require-dev": {
+        "orchestra/testbench": "^8.0|^9.0|^10.0",
+        "phpunit/phpunit": "^10.5|^11.0"
+    },
     "autoload": {
         "psr-4": {
             "Daz9e\\LaravelLogCompressor\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Daz9e\\LaravelLogCompressor\\Tests\\": "tests/"
         }
     },
     "extra": {
@@ -24,5 +33,8 @@
                 "Daz9e\\LaravelLogCompressor\\Providers\\LogCompressorServiceProvider"
             ]
         }
+    },
+    "scripts": {
+        "test": "phpunit"
     }
 }

@@ -1,38 +1,53 @@
+# Laravel Log Compressor
 
+[![tests](https://github.com/daz9e/laravel-log-compressor/actions/workflows/tests.yml/badge.svg)](https://github.com/daz9e/laravel-log-compressor/actions/workflows/tests.yml)
+[![Packagist Version](https://img.shields.io/packagist/v/daz9e/laravel-log-compressor)](https://packagist.org/packages/daz9e/laravel-log-compressor)
+[![License](https://img.shields.io/packagist/l/daz9e/laravel-log-compressor)](LICENSE)
 
-# Log Compression Command
+Gzips rotated Laravel log files (`*-YYYY-MM-DD.log`) and removes stale archives, so `storage/logs` stops eating your disk.
+
+## Installation
+
+```bash
+composer require daz9e/laravel-log-compressor
+```
+
+The service provider is auto-discovered, and the command is scheduled to run daily.
 
 ## Usage
-Run the command to compress log files older than a specified number of days and delete old compressed logs.
 
 ```bash
 php artisan logs:compress [days]
 ```
 
-- **`days`** (optional): Number of days to keep logs uncompressed. Defaults to `LOG_COMPRESS_DAYS` in `.env` or `2` days.
-
-### Example
-```bash
-php artisan logs:compress 5
-```
-Compresses logs older than 5 days and deletes `.gz` files older than 14 days (configurable in `config/logging.php`).
+- Compresses dated `.log` files in `storage/logs` (including subdirectories) that are older than `days`, counted from the newest log file. The original file is removed only after the `.gz` is written successfully.
+- Deletes `.log.gz` archives older than `logging.channels.daily.days` (default `14`).
+- Files without a date in the name, such as `laravel.log`, are never touched.
 
 ## Configuration
-In `config/logging.php`:
-- **`compress_days`**: Days to keep logs uncompressed (default: `2`). Override via `.env`:
-  ```env
-  LOG_COMPRESS_DAYS=5
-  ```
-- **`logging.channels.daily.days`**: Retention period for compressed logs (default: `14` days).
 
-## Scheduling
-Scheduled to run daily in `routes/console.php`:
+Optional keys in `config/logging.php`:
+
 ```php
-Schedule::command('logs:compress')->daily();
+'compress_days' => env('LOG_COMPRESS_DAYS', 2),  // days to keep logs uncompressed
+'compress_schedule' => true,                      // set to false to disable the daily schedule
 ```
 
-Ensure the Laravel scheduler is set up:
+Archive retention reuses `logging.channels.daily.days`.
+
+The daily run needs the Laravel scheduler:
+
 ```bash
 * * * * * cd /path-to-your-project && php artisan schedule:run >> /dev/null 2>&1
 ```
 
+## Testing
+
+```bash
+composer install
+composer test
+```
+
+## License
+
+MIT
